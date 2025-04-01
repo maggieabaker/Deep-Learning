@@ -1,0 +1,80 @@
+# Install Magnitude on Google Colab
+! echo "Installing Magnitude.... (please wait, can take a while)"
+! (curl https://raw.githubusercontent.com/plasticityai/magnitude/master/install-colab.sh | /bin/bash 1>/dev/null 2>/dev/null)
+! echo "Done installing Magnitude."
+
+import collections.abc
+collections.MutableMapping = collections.abc.MutableMapping
+!pip install lz4==3.0.2
+!pip install xxhash==1.3.0
+!pip install annoy==1.16.3
+!pip install fasteners==0.14.1
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+
+# Run this block twice, the second time it will work with no error
+from pymagnitude import *
+file_path=('/content/drive/MyDrive/GoogleNews-vectors-negative300.magnitude')
+vectors=Magnitude(file_path)
+
+#question1
+#print('number of vectors = ',len(vectors))
+print('length of each vector = ',vectors.dim)
+
+#question 2
+x=vectors.most_similar("picnic", topn = 5)
+print('Top 5 most similar words to picnic:')
+for i in x:
+  print(i[0])
+
+#visualization Q2
+import matplotlib.pyplot as plt
+reps=100
+x=vectors.most_similar("picnic", topn = reps)
+c=0
+d=0
+a=0
+b=0
+for i in x:
+  word=i[0]
+  if 'picnic'in word:
+    c+=1
+  if 'Picnic'in word:
+    d+=1
+  if 'picnics'in word:
+    a+=1
+  if 'Picnic'in word:
+    b+=1
+plt.figure(figsize=(10, 5))
+plt.bar(["Contains 'picnic'", "Contains 'Picnic'","Contains 'picnics'","Contains 'Picnics'","Other"],[c/reps,d/reps,a/reps,b/reps,(reps-c-d-a-b)/reps])
+plt.title("Relitive Frequency Histogram of Top 100 Most Similar Words to 'picnic'")
+plt.show()
+
+#question 3
+x=['tissue', 'papyrus', 'manila', 'newsprint', 'parchment', 'gazette']
+print("Word that doesn't match:")
+print(vectors.doesnt_match(x))
+
+#visualization Q3
+import seaborn as sns
+import numpy as np
+import pandas
+import matplotlib.pyplot as plt
+x=['tissue', 'papyrus', 'manila', 'newsprint', 'parchment', 'gazette']
+data=pandas.DataFrame()
+for i in x:
+  sims=[]
+  for j in x:
+    y=vectors.distance(i, j)
+    sims.append(y)
+  data[i]=sims
+data.index=x
+sns.heatmap(data,annot=True,xticklabels=True,yticklabels=True,cmap="Spectral")
+plt.title('Heatmap of Distance Between Words in Q3')
+plt.show()
+
+#question 4
+x=vectors.most_similar(positive = ["leg", "throw"], negative = ["jump"])[0][0]
+print('Leg is to jump as',x,'is to throw.')
