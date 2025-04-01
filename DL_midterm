@@ -1,0 +1,95 @@
+#import packacges
+import random
+import numpy as np
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+import tensorflow_datasets as tfds
+import keras
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dropout, Flatten, Dense, LeakyReLU
+
+#import data
+train_data = tfds.load('caltech101', as_supervised=True, shuffle_files=True, split='test', download=True) #because ~60% data in test split
+test_data = tfds.load('caltech101', as_supervised=True, shuffle_files=True, split='train', download=True)
+
+#sepearting images and labels for test/training data
+#resize images before running through model
+train_images1= [tf.keras.ops.image.resize(i[0],[100,100], interpolation='bilinear') for i in train_data]
+test_images1= [tf.keras.ops.image.resize(i[0],[100,100], interpolation='bilinear') for i in test_data]
+
+train_labels1= [i[1] for i in train_data]
+test_labels1= [i[1] for i in test_data]
+
+#reformat data into arrays
+train_images=[]
+train_labels=[]
+test_images=[]
+test_labels=[]
+
+for i in range(len(train_data)):
+  train_images.append(train_images1[i].numpy())
+  train_labels.append(train_labels1[i].numpy())
+for i in range(len(test_data)):
+  test_images.append(test_images1[i].numpy())
+  test_labels.append(test_labels1[i].numpy())
+
+train_images=np.stack(train_images,axis=0)
+train_labels=np.stack(train_labels,axis=0)
+test_images=np.stack(test_images,axis=0)
+test_labels=np.stack(test_labels,axis=0)
+
+#normalize images
+train_images = train_images.astype('float32') / 255.0
+test_images = test_images.astype('float32') / 255.0
+
+#classifying labels
+train_labels=tf.keras.utils.to_categorical(train_labels,102)
+test_labels=tf.keras.utils.to_categorical(test_labels,102)
+
+#set up model
+model = keras.Sequential()
+model.add(keras.Input(shape=(100, 100, 3)))
+
+model.add(Conv2D(32, (3, 3), padding='same'))
+model.add(LeakyReLU(0.01))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
+
+model.add(Conv2D(64, (3, 3), padding='same'))
+model.add(LeakyReLU(0.01))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Dropout(0.25))
+
+model.add(Flatten())
+model.add(Dense(64))
+model.add(LeakyReLU(0.01))
+model.add(Dropout(0.5)) #added
+model.add(Dense(102, activation='softmax'))
+
+model.summary()
+
+#setting up model
+o = tf.keras.optimizers.Adam(learning_rate=.001) #can change
+model.compile(optimizer=o, loss='categorical_crossentropy', metrics=['accuracy']) #can change loss function
+
+#training model
+trained_model=model.fit(train_images, train_labels,batch_size=32,epochs=50,validation_data=(test_images, test_labels))
+
+#saving accuracy scores
+tain_accuracy=trained_model.history['accuracy']
+validation_accuracy=trained_model.history['val_accuracy']
+
+#saving model for future use
+model.save("caltech101_cnn.keras")
+updated_model = keras.saving.load_model("caltech101_cnn.keras")
+
+#save scores + plot
+plt.figure(figsize=(10, 6))
+epochs_range = range(1, 21)
+plt.plot(epochs_range, validation_accuracy, marker='o')
+plt.title("Test Accuracy Plot")
+plt.xlabel("Epochs")
+plt.ylabel("Test Accuracy")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
