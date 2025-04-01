@@ -1,3 +1,5 @@
+#I ran this code through google colab after downloading the magnitude file to my google drive
+
 # Install Magnitude on Google Colab
 ! echo "Installing Magnitude.... (please wait, can take a while)"
 ! (curl https://raw.githubusercontent.com/plasticityai/magnitude/master/install-colab.sh | /bin/bash 1>/dev/null 2>/dev/null)
